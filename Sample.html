@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="utf-8" />
+    <title>Exemplo de Consumo da API de Calendários da Elekto via JSONP</title>
+    <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-2.0.3.min.js"></script>
+</head>
+<body>
+    <h1>
+        Exemplo de Consumo da API de Calendários da Elekto via JSONP</h1>
+    <fieldset>
+        <legend>Adição de Dias Úteis a Uma Data</legend>
+        <p>
+            <label for="calendar">
+                Calendário</label>
+            <input type="text" id="calendar" value="br-BC" />
+            <label for="initialDate">
+                Data Inicial (yyyy-MM-dd)</label>
+            <input type="date" id="initialDate" />
+            <label for="term">
+                Prazo (dias úteis)</label>
+            <input type="number" id="term" step="1" value="21" />
+        </p>
+        <input type="button" id="calculate" value="Calcular" />
+        <p>
+            <label for="finalDate">
+                Data Final (yyyy-MM-dd)</label>
+            <input type="date" id="finalDate" readonly="readonly" />
+        </p>
+    </fieldset>
+    <p>
+        Links potencialmente úteis quanto ao consumo dessa API:
+    </p>
+    <ul>
+        <li><a href="http://elekto.com.br/Blog/ManualDoUsuarioDaCalculadoraDePrazos">Manual
+            de Usuário</a> da Calculadora de Prazos</li>
+        <li>Manual da <a href="http://elekto.com.br/Blog/ComoConsumirApiDeCalendarios">API</a>
+            da Calculadora de Prazos</li>
+        <li>Documentação jQuery sobre a função <a href="http://api.jquery.com/jQuery.getJSON/">
+            getJSON</a></li>
+        <li><a href="http://leobalter.net/tecnologia/ajax-crossdomain-com-jquery-e-jsonp/">Outro</a>
+            exemplo de consumo de JSONP</li>
+    </ul>
+    <script type="text/javascript">
+
+		// Converte um date em string iso
+		function getIsoDate(dt) {
+			var year = dt.getUTCFullYear();
+            var month = dt.getUTCMonth() + 1;
+            var day = dt.getUTCDate();
+
+            month = month < 10 ? "0" + month : month;
+            day = day < 10 ? "0" + day : day;
+
+            return year + "-" + month + "-" + day;
+		}
+	
+        // So para retornar hoje na forma que o servidor espera
+        function getTodayAsIsoDate() {
+            var dt = new Date();
+            return getIsoDate(dt);
+        }
+						
+		function getDateFromJson(jsonDate) {
+			if (jsonDate.substr(0, 1) == "/"){
+				// Data no formato JSON antigo
+				// Crédito para https://sudarshanbhalerao.wordpress.com/2011/08/14/convert-json-date-into-javascript-date/
+				var offset = new Date().getTimezoneOffset() * 60000;
+				var parts = /\/Date\((-?\d+)([+-]\d{2})?(\d{2})?.*/.exec(jsonDate);
+				
+				if (parts[2] == undefined) 
+				  parts[2] = 0;
+				
+				if (parts[3] == undefined) 
+				  parts[3] = 0;
+				
+				var dt = new Date(+parts[1] + offset + parts[2]*3600000 + parts[3]*60000);
+				return getIsoDate(dt);
+			}
+			else{
+				// Assumo que esta em iso
+				return jsonDate.substr(0, 10);
+			}				
+		}
+
+        $(function () {
+
+            // Popula a data inicial como hoje
+            var today = getTodayAsIsoDate();
+            $("#initialDate").val(today);
+
+            // Aqui acontecerá a mágica
+            $("#calculate").click(function () {
+                var calendar = $("#calendar").val();
+                var initialDate = $("#initialDate").val();
+                var days = $("#term").val();
+
+                // Atenção ao parâmetro final, relativo ao callback! 
+                var url = "http://elekto.com.br/api/Calendars/" + calendar + "/Add?initialDate=" + initialDate + "&days=" + days + "&type=work&finalAdjust=none&callback=?";
+				$.getJSON(url, function(r){
+						var finalDate = getDateFromJson(r);
+                        $("#finalDate").val(finalDate);
+                    }
+                )
+				.fail(function(jqXHR, textStatus, errorThrown) {
+					var err = textStatus + ', ' + errorThrown;
+					console.log( "Request Failed: " + err);
+					alert("Problemas: " + err);
+				});
+            });
+        });
+
+    </script>
+</body>
+</html>
