@@ -1,45 +1,74 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 	<meta charset="utf-8" />
     <title>Exemplo de Consumo da API de Calendários da Elekto via JSONP</title>
-    <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-2.0.3.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 </head>
 <body>
     <h1>
-        Exemplo de Consumo da API de Calendários da Elekto via JSONP</h1>
-    <fieldset>
-        <legend>Adição de Dias Úteis a Uma Data</legend>
-        <p>
-            <label for="calendar">
-                Calendário</label>
-            <input type="text" id="calendar" value="br-BC" />
-            <label for="initialDate">
-                Data Inicial (yyyy-MM-dd)</label>
-            <input type="date" id="initialDate" />
-            <label for="term">
-                Prazo (dias úteis)</label>
-            <input type="number" id="term" step="1" value="21" />
-        </p>
-        <input type="button" id="calculate" value="Calcular" />
-        <p>
-            <label for="finalDate">
-                Data Final (yyyy-MM-dd)</label>
-            <input type="date" id="finalDate" readonly="readonly" />
-        </p>
-    </fieldset>
+        Exemplo de Consumo da API de Calendários da Elekto via JSON</h1>
+<fieldset>
+    <legend>Adição de Dias Úteis a Uma Data</legend>
     <p>
+        <label for="calendar">
+            Calendário</label>
+        <input type="text" id="calendar" value="br-BC" />
+        <label for="initialDate">
+            Data Inicial</label>
+        <input type="date" id="initialDate" />
+        <label for="term">
+            Prazo (dias úteis)</label>
+        <input type="number" id="term" step="1" value="21" />
+    </p>
+    <input type="button" id="calculate" value="Calcular" />
+    <p>
+        <label for="finalDate">
+            Data Final</label>
+        <input type="date" id="finalDate" readonly="readonly" />
+    </p>
+</fieldset>
+
+<fieldset>
+    <legend>Prazo em dias úteis</legend>
+    <p>
+        <label for="calendar">
+            Calendário
+        </label>
+        <input type="text" id="calendarDelta" value="br-BC" />
+        <label for="initialDateDelta">
+            Data Inicial
+        </label>
+        <input type="date" id="initialDateDelta" />
+        <label for="finalDateDelta">
+            Data Final
+        </label>
+        <input type="date" id="finalDateDelta"  />
+        
+    </p>
+    <input type="button" id="calculateDelta" value="Calcular" />
+    <p>
+        <label for="termDelta">
+            Prazo (dias úteis)
+        </label>
+        <input type="number" id="termDelta" readonly="readonly" step="1" />
+        <label for="termDeltaActual">
+            Prazo (dias corridos)
+        </label>
+        <input type="number" id="termDeltaActual" readonly="readonly" step="1" />
+    </p>
+</fieldset>
+
+<p>
         Links potencialmente úteis quanto ao consumo dessa API:
     </p>
     <ul>
-        <li><a href="http://elekto.com.br/Blog/ManualDoUsuarioDaCalculadoraDePrazos">Manual
+        <li><a href="https://elekto.com.br/Blog/ManualDoUsuarioDaCalculadoraDePrazos">Manual
             de Usuário</a> da Calculadora de Prazos</li>
-        <li>Manual da <a href="http://elekto.com.br/Blog/ComoConsumirApiDeCalendarios">API</a>
+        <li>Manual da <a href="https://elekto.com.br/Blog/ComoConsumirApiDeCalendarios">API</a>
             da Calculadora de Prazos</li>
-        <li>Documentação jQuery sobre a função <a href="http://api.jquery.com/jQuery.getJSON/">
-            getJSON</a></li>
-        <li><a href="http://leobalter.net/tecnologia/ajax-crossdomain-com-jquery-e-jsonp/">Outro</a>
-            exemplo de consumo de JSONP</li>
+        <li>Documentação jQuery sobre a função <a href="https://api.jquery.com/jQuery.getJSON/">
+            getJSON</a></li>        
     </ul>
     <script type="text/javascript">
 
@@ -62,7 +91,7 @@
         }
 						
 		function getDateFromJson(jsonDate) {
-			if (jsonDate.substr(0, 1) == "/"){
+			if (jsonDate.substr(0, 1) === "/"){
 				// Data no formato JSON antigo
 				// Crédito para https://sudarshanbhalerao.wordpress.com/2011/08/14/convert-json-date-into-javascript-date/
 				var offset = new Date().getTimezoneOffset() * 60000;
@@ -81,13 +110,19 @@
 				// Assumo que esta em iso
 				return jsonDate.substr(0, 10);
 			}				
-		}
+        }		
 
         $(function () {
 
             // Popula a data inicial como hoje
             var today = getTodayAsIsoDate();
+
             $("#initialDate").val(today);
+            $("#initialDateDelta").val(today);
+
+            var td1M = new Date();
+            td1M.setMonth(td1M.getMonth() + 1);
+            $("#finalDateDelta").val(getIsoDate(td1M));
 
             // Aqui acontecerá a mágica
             $("#calculate").click(function () {
@@ -95,19 +130,39 @@
                 var initialDate = $("#initialDate").val();
                 var days = $("#term").val();
 
-                // Atenção ao parâmetro final, relativo ao callback! 
-                var url = "http://elekto.com.br/api/Calendars/" + calendar + "/Add?initialDate=" + initialDate + "&days=" + days + "&type=work&finalAdjust=none&callback=?";
+                // Com CORS habilitado em nossa API, o callback (via jsonp não é mais necessário)
+                var url = "https://elekto.com.br/api/Calendars/" + calendar + "/Add?initialDate=" + initialDate + "&days=" + days + "&type=work&finalAdjust=none";
 				$.getJSON(url, function(r){
 						var finalDate = getDateFromJson(r);
                         $("#finalDate").val(finalDate);
                     }
                 )
-				.fail(function(jqXHR, textStatus, errorThrown) {
+				.fail(function(jqXhr, textStatus, errorThrown) {
 					var err = textStatus + ', ' + errorThrown;
 					console.log( "Request Failed: " + err);
 					alert("Problemas: " + err);
 				});
             });
+
+            $("#calculateDelta").click(function () {
+                var calendar = $("#calendarDelta").val();
+                var initialDate = $("#initialDateDelta").val();
+                var finalDate = $("#finalDateDelta").val();
+
+                var url = "https://elekto.com.br/api/Calendars/" + calendar + "/Delta?initialDate=" + initialDate + "&finalDate=" + finalDate + "&type=financial";
+                $.getJSON(url, function (r) {
+                            $("#termDelta").val(r["WorkDays"]);
+                            $("#termDeltaActual").val(r["ActualDays"]);
+                        }
+                    )
+                    .fail(function(jqXhr, textStatus, errorThrown) {
+                        var err = textStatus + ', ' + errorThrown;
+                        console.log( "Request Failed: " + err);
+                        alert("Problemas: " + err);
+                    });
+
+            });
+
         });
 
     </script>
